@@ -1,4 +1,4 @@
-const HOOKS_URL = "http://example.com/";
+const HOOKS_URL = "https://hooks.slack.com/services/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";
 
 class Message {
   constructor() {
@@ -11,7 +11,6 @@ class Message {
   publish() {
     const regexp = new RegExp('{%=.*%}');
     if (this._template.match(regexp)){
-      Logger.log("Missing defined item in form.");
       return false;
     }
     return this._template;
@@ -31,17 +30,22 @@ const itemsToHide = ["氏名"];
 
 const sendMessage = (message) => {
   const hooksUrl = HOOKS_URL;
-  const data = { "text" : message.publish() };
+
+  const body = message.publish();
+  if (!body) { throw "Missing defined item in form." }
+
+  const data = { "text" : body };
   const payload = JSON.stringify(data);
   const params = {
     "method" : "POST",
     "contentType" : "application/json",
     "payload" : payload
   };
+
   const response = UrlFetchApp.fetch(hooksUrl, params);
   const status = response.getResponseCode();
   if (typeof(status)!="number" || response.getResponseCode() > 400) {
-    Logger.log(`Webhook returns error: status ${status}.`);
+    throw `Webhook returns error: status ${status}.`;
   } else {
     Logger.log(`Success. ${payload} `);
   }
@@ -56,12 +60,12 @@ const onSubmitForm = (e) => {
       const title = input.getItem().getTitle();
       if (itemsToHide.includes(title)){ return }
       const response = input.getResponse();
-      if (!message.fill(title, response)){ 
+      if (!message.fill(title, response)){
         throw `Undefined input title ${key}`;
       }
     })
     sendMessage(message);
   } catch(e) {
-    Logger.log("Process failed.")
+    Logger.log("Process failed." + e)
   }
 }
